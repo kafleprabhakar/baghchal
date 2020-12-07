@@ -1,0 +1,2 @@
+GOAT = 'G'
+TIGER = 'T'
