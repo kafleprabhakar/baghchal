@@ -1,0 +1,25 @@
+#main {
+    #status-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        align-items: center;
+
+        div {
+            padding: 0 5px;
+        }
+    }
+    #game-board {
+        height: 180px;
+        width: 180px;
+        background-image: url('./static/img/board.png');
+        background-size: contain;
+        
+        #pieces-list {
+            display: block;
+            position: relative;
+            line-height: 1;
+            margin: 0;
+        }
+    }
+}

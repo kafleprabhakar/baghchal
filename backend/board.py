@@ -1,10 +1,24 @@
 from pieces import Goat, Tiger, Piece
 
 class Board:
-    def __init__(self, size = 5):
-        self.goats = 0
-        self.size = size
-        self.values = [['_' for _ in range(size)] for _ in range(size)]
+    def __init__(self, size = 5, values= None, goats= 0):
+        conf = []
+        if values:
+            for i, row in enumerate(values):
+                r = []
+                for j, val in enumerate(row):
+                    if val == 'G':
+                        v = Goat((j, i))
+                    elif val == 'T':
+                        v = Tiger((j, i))
+                    else:
+                        v = val
+                    r.append(v)
+                conf.append(r)
+        
+        self.goats = goats
+        self.size = len(conf) if values else size
+        self.values = conf if values else [['_' for _ in range(size)] for _ in range(size)]
 
     def init_game(self):
         last = self.size - 1
