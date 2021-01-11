@@ -2,14 +2,8 @@ import React from 'react';
 
 class Piece extends React.Component{
     render() {
-        const positioning = {
-            position: "absolute",
-            left: this.props.x * 45 - 5,
-            top: this.props.y * 45 - 5,
-            fontWeight: 900,
-        }
         return (
-            <div className="single-piece" style={positioning}>
+            <div className={`single-piece loc-x-${this.props.x} loc-y-${this.props.y}`} onClick={this.props.onClick}>
                 {this.props.children}
             </div>
         )

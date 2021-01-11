@@ -13,3 +13,7 @@ class Goat(Piece):
 class Tiger(Piece):
     def __str__(self):
         return 'T'
+
+class Empty(Piece):
+    def __str__(self):
+        return '_'

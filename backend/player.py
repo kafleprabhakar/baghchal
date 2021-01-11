@@ -1,13 +1,28 @@
-from pieces import Goat, Tiger
+from pieces import Goat, Tiger, Empty
 import random
 
 class Player:
     def __init__(self, board, piece):
         self.board = board
         self.piece = piece
+    
+    def get_all_moves(self):
+        if self.piece == Goat and self.board.goats < 20:
+            empty = self.board.get_positions(Empty)
+            moves = [((i, j), '+') for i, j in empty]
+        else:
+            positions = self.board.get_positions(self.piece)
+            moves = []
+            for pos in positions:
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        if self.board.check_move(pos, (dx, dy)):
+                            moves.append((pos, (dx, dy)))
+        
+        return moves
 
 class AutoPlayer(Player):
-    def make_move(self):
+    def make_random_move(self):
         if self.piece == Goat and self.board.goats < 20:
             self.add_goat()
             # return {'type': 'A', 'pos': pos}
@@ -30,7 +45,6 @@ class AutoPlayer(Player):
                     pass
 
     def add_goat(self):
-        # print('adding goat')
         success = False
         while not success:
             try:
@@ -43,3 +57,5 @@ class AutoPlayer(Player):
                 # print('while adding goat', e)
                 pass
 
+    def make_move(self):
+        return self.make_random_move()
