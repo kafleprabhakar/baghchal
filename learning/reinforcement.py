@@ -24,7 +24,7 @@ def run_simulation():
         tigerModel = NeuralNet()
         # tigerModel = th.load('tigerModel.pt')
         goatModel = NeuralNet()
-        EPOCHS = 20000
+        EPOCHS = 100000
 
         for i in tqdm(range(EPOCHS)):
             brd = Board()
@@ -37,17 +37,17 @@ def run_simulation():
 
             players = [alice, bob]
             
-            if i != 0:
-                sys.stdout.write("\033[6F")
+            # if i != 0:
+            #     sys.stdout.write("\033[6F")
 
-            print(brd)
+            # print(brd)
             over = False
             for _ in range(40):
                 for player in players:
                     try:
                         player.make_move()
-                        sys.stdout.write("\033[6F")
-                        print(brd)
+                        # sys.stdout.write("\033[6F")
+                        # print(brd)
                         # time.sleep(0.5)
                     except:
                         over = True
@@ -61,7 +61,8 @@ def run_simulation():
             for exp in bob.data:
                 total_reward += exp[2]
                 vector = flatten_sa_pair(exp[:2]).tolist()
-                all_experiences.append((vector, exp[2]))
+                vector.append(exp[2])
+                all_experiences.append(vector)
 
 
             avg_rewards.append(total_reward/len(bob.experience))
@@ -72,14 +73,14 @@ def run_simulation():
         
         # print('average rewards: ', avg_rewards)
         iters = range(EPOCHS)
-        n = int(EPOCHS/50)
+        n = int(EPOCHS/10)
         plt.plot(iters[::n], avg_rewards[::n])
     plt.legend(['LR: %f'% LR for LR in LRs])
     plt.show()
 
     # th.save(tigerModel, 'tigerModel.pt')
 
-    with open('experience.txt', 'w') as file:
+    with open('experience-big.txt', 'w') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         for exp in all_experiences:
             writer.writerow(exp)

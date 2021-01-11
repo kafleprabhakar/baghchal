@@ -15,5 +15,5 @@ class NeuralNet(th.nn.Module):
         self.to(self.device)
 
     def forward(self, data):
-        inp = flatten_sa_pair(data).float().to(self.device)
+        data.to(self.device)
         return self.layers(inp)

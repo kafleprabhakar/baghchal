@@ -35,7 +35,7 @@ def flatten_sa_pair(inp):
     state_vector = th.tensor(state_vector).reshape(1, -1)
     action_vector = th.tensor(action_vector).reshape(1, -1)
 
-    return th.cat((state_vector, action_vector), 1)
+    return th.cat((state_vector, action_vector), 1).reshape(-1)
 
 
 def jsonify(board):

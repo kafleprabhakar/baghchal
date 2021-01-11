@@ -88,6 +88,8 @@ class BaseAgent(AutoPlayer):
         for *inp, target in self.experience:
             self.optimizer.zero_grad()
 
+
+            inp = flatten_sa_pair(inp).float()
             pred = self.model(inp)
 
             target = th.tensor(target).float().reshape(1, 1)
