@@ -2,3 +2,5 @@ __pycache__/
 /baghchal/
 test.py
 secret.py
+experience.txt
+.DS_Store
