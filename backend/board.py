@@ -84,11 +84,13 @@ class Board:
         
         piece = self.check_location(location)
 
+        goat_reward = len(self.get_positions(Goat)) - self.goats # Negative the number of pieces captured
+
         x, y = location
         if isinstance(piece, Empty):
             if direction == '+':
                 self.add_goat(location)
-                return GOAT_REWARDS['ADD']
+                return goat_reward
             else:
                 raise Exception('Location empty')
 
@@ -121,4 +123,7 @@ class Board:
             self.values[to[1]][to[0]] = piece
             piece.move(to)
 
-            return GOAT_REWARDS['MOVE']
+            if isinstance(piece, Goat):
+                return goat_reward
+            else:
+                return TIGER_REWARDS['MOVE']

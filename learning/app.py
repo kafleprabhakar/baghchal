@@ -35,11 +35,13 @@ def next_move():
     
 
     if turn == 'G':
-        player = GoatAgent(brd)
+        player = GoatAgent(brd, train=False)
+        model = th.load('goatModel-learn.pt')
     else:
         player = TigerAgent(brd, train=False)
-        model = th.load('tigerModel-learn.pt')
-        player.set_model(model)
+        model = th.load('tigerModel-learn-big.pt')
+    
+    player.set_model(model)
     
     player.make_move()
     new_brd = jsonify(brd)
@@ -58,11 +60,13 @@ def make_move():
     dy = request.args.get('dy', type=int)
 
     if turn == 'G':
-        player = GoatAgent(brd)
+        player = GoatAgent(brd, train=False)
+        model = th.load('goatModel-learn.pt')
     else:
         player = TigerAgent(brd, train=False)
-        model = th.load('tigerModel-learn.pt')
-        player.set_model(model)
+        model = th.load('tigerModel-learn-big.pt')
+    
+    player.set_model(model)
     
     player.make_move(((x, y), (dx, dy)))
 
@@ -78,11 +82,13 @@ def get_best_moves():
     turn = request.args.get('turn', type=str)
 
     if turn == 'G':
-        player = GoatAgent(brd)
+        player = GoatAgent(brd, train=False)
+        model = th.load('goatModel-learn.pt')
     else:
-        player = TigerAgent(brd)
-        model = th.load('tigerModel-learn.pt')
-        player.set_model(model)
+        player = TigerAgent(brd, train=False)
+        model = th.load('tigerModel-learn-big.pt')
+    
+    player.set_model(model)
     
     moves = player.get_moves_with_rewards()
 

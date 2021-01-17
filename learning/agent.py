@@ -8,6 +8,7 @@ import copy
 from model import NeuralNet
 from player import AutoPlayer
 from pieces import Tiger, Goat
+from utils import flatten_sa_pair
 
 
 class BaseAgent(AutoPlayer):
@@ -47,7 +48,8 @@ class BaseAgent(AutoPlayer):
 
         moves = []
         for move in valid_moves:
-            reward = self.model((self.board.values, move))
+            inp = flatten_sa_pair((self.board.values, move)).float()
+            reward = self.model(inp)
             moves.append((move, reward.item()))
         
         return moves
@@ -59,28 +61,14 @@ class BaseAgent(AutoPlayer):
         return random.choice(valid_moves)
 
     def get_best_move(self):
-        valid_moves = self.get_all_moves()
-        if len(valid_moves) == 0:
+        moves = self.get_moves_with_rewards()
+
+        if len(moves) == 0:
             raise Exception
-        best_move = None
-        best_reward = 0
-        for move in valid_moves:
-            reward = self.model((self.board.values, move))
-            if best_move is None or reward > best_reward:
-                best_move = move
-                best_reward = reward
-        
-        return best_move
 
+        best_move = max(moves, key=lambda x: x[1])
 
-    def prepare_data(self):
-        self.data = []
-        total = 0
-        for exp in self.experience[-1::-1]:
-            total = exp[2] + self.discount * total
-            self.data.append((*exp[:-1], total))
-        
-        self.data.reverse()
+        return best_move[0]
             
 
     def learn(self):
@@ -109,8 +97,38 @@ class BaseAgent(AutoPlayer):
 class TigerAgent(BaseAgent):
     def __init__(self, board, LR=0.1, train=True):
         super().__init__(board, piece=Tiger, LR=LR, train=train)
+        self.discount = 0.3
+
+
+    def prepare_data(self):
+        self.data = []
+        total = 0
+        for exp in self.experience[-1::-1]:
+            total = exp[2] + self.discount * total
+            self.data.append((*exp[:-1], total))
+        
+        self.data.reverse()
 
 
 class GoatAgent(BaseAgent):
     def __init__(self, board, LR=0.1, train=True):
         super().__init__(board, piece=Goat, LR=LR, train=train)
+        self.discount = 0.5
+
+    def prepare_data(self):
+        raw = []
+        self.data = []
+        prev = self.experience[-1][-1]
+
+        for exp in self.experience[-1::-1]:
+            reward = 10 - (exp[2] - prev) * 9
+            raw.append((*exp[:-1], reward))
+            prev = exp[2]
+        
+        total = 0
+        for exp in raw:
+            total = exp[2] + self.discount * total
+            self.data.append((*exp[:-1], total))
+
+        self.data.reverse()
+        

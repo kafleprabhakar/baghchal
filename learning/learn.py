@@ -5,25 +5,25 @@ from matplotlib import pyplot as plt
 
 from model import NeuralNet
 from dataset import Dataset
+from consts import GAME_LENGTH
 
-EPOCHS = 5
+EPOCHS = 4
 
 # with open('experience.txt') as file:
 #     reader = csv.reader(file, delimiter=',')
 #     experiences = list(reader)
 
-dataset = Dataset('experience-big.txt')
-dataloader = th.utils.data.DataLoader(dataset, batch_size=40)
+dataset = Dataset('experience-goat.txt')
+dataloader = th.utils.data.DataLoader(dataset, batch_size=GAME_LENGTH)
 
 
 device = th.device('cuda:0' if th.cuda.is_available() else 'cpu')
 
-
 # LRs = [0.001, 0.01, 0.0025]
 LRs = [0.0025]
 for LR in LRs:
-    # model = NeuralNet().to(device)
-    model = th.load('tigerModel-learn.pt')
+    model = NeuralNet().to(device)
+    # model = th.load('tigerModel-learn.pt')
     optimizer = th.optim.Adam(model.parameters(), lr=LR)
     loss_func = th.nn.MSELoss()
 
@@ -47,11 +47,11 @@ for LR in LRs:
 
             optimizer.step()
         
-        avg_loss.append(total_loss / len(experiences))
+        avg_loss.append(total_loss / (len(dataloader) * GAME_LENGTH))
 
     plt.plot(range(EPOCHS), avg_loss)
 
-    th.save(model, 'tigerModel-learn-big.pt')
+    th.save(model, 'goatModel-learn.pt')
 
 plt.legend(['LR: %f'% LR for LR in LRs])
 plt.show()

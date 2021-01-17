@@ -57,15 +57,15 @@ def run_simulation():
             
             total_reward = 0
 
-            bob.prepare_data()
-            for exp in bob.data:
+            alice.prepare_data()
+            for exp in alice.data:
                 total_reward += exp[2]
                 vector = flatten_sa_pair(exp[:2]).tolist()
                 vector.append(exp[2])
                 all_experiences.append(vector)
 
 
-            avg_rewards.append(total_reward/len(bob.experience))
+            avg_rewards.append(total_reward/len(alice.experience))
 
             # alice.learn()
             # loss = bob.learn()
@@ -73,14 +73,14 @@ def run_simulation():
         
         # print('average rewards: ', avg_rewards)
         iters = range(EPOCHS)
-        n = int(EPOCHS/10)
+        n = int(EPOCHS/50)
         plt.plot(iters[::n], avg_rewards[::n])
     plt.legend(['LR: %f'% LR for LR in LRs])
     plt.show()
 
     # th.save(tigerModel, 'tigerModel.pt')
 
-    with open('experience-big.txt', 'w') as file:
+    with open('experience-goat.txt', 'w') as file:
         writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         for exp in all_experiences:
             writer.writerow(exp)

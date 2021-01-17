@@ -16,4 +16,4 @@ class NeuralNet(th.nn.Module):
 
     def forward(self, data):
         data.to(self.device)
-        return self.layers(inp)
+        return self.layers(data)
