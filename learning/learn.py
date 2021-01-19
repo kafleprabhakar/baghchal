@@ -9,9 +9,6 @@ from consts import GAME_LENGTH
 
 EPOCHS = 4
 
-# with open('experience.txt') as file:
-#     reader = csv.reader(file, delimiter=',')
-#     experiences = list(reader)
 
 dataset = Dataset('experience-goat.txt')
 dataloader = th.utils.data.DataLoader(dataset, batch_size=GAME_LENGTH)
@@ -51,7 +48,7 @@ for LR in LRs:
 
     plt.plot(range(EPOCHS), avg_loss)
 
-    th.save(model, 'goatModel-learn.pt')
+    th.save(model, 'model-goat-learn.pt')
 
 plt.legend(['LR: %f'% LR for LR in LRs])
 plt.show()

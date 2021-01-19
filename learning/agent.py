@@ -4,6 +4,7 @@ sys.path.append(os.path.join('..', 'backend'))
 import torch as th
 import random
 import copy
+import csv
 
 from model import NeuralNet
 from player import AutoPlayer
@@ -70,28 +71,40 @@ class BaseAgent(AutoPlayer):
 
         return best_move[0]
             
+    def save_experience(self, filename='experience.txt'):
+        """
+        Saves the experience of the current agent for the current round by
+        appending it to the file specified as filename
+        """
+        with open(filename, 'a') as file:
+            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for exp in self.data:
+                writer.writerow(exp)
 
     def learn(self):
+        self.optimizer.zero_grad()
+
         total_loss = 0
-        for *inp, target in self.experience:
-            self.optimizer.zero_grad()
-
-
-            inp = flatten_sa_pair(inp).float()
-            pred = self.model(inp)
-
-            target = th.tensor(target).float().reshape(1, 1)
-            loss = self.loss_func(pred, target).to(self.model.device)
-            loss.backward()
-
-            total_loss += loss.item()
-
-            self.optimizer.step()
+        data = th.tensor(self.data).float()
         
+        n_features = data.shape[1] - 1
+        features, target = th.split(data, [n_features, 1], dim=1)
+
+        pred = self.model(features)
+        target = target.reshape(-1, 1)
+
+        loss = self.loss_func(pred, target).to(self.model.device)
+        loss.backward()
+
+        total_loss = loss.item()
+
+        self.optimizer.step()
+
+        # Decrease the epsilon to do more exploitation
         self.epsilon -= self.eps_dec
         self.epsilon = max(self.epsilon, self.eps_min)
 
-        return total_loss/len(self.experience)
+        return total_loss/len(self.data)
 
 
 class TigerAgent(BaseAgent):
@@ -104,8 +117,10 @@ class TigerAgent(BaseAgent):
         self.data = []
         total = 0
         for exp in self.experience[-1::-1]:
+            vector = flatten_sa_pair(exp[:-1]).tolist()
             total = exp[2] + self.discount * total
-            self.data.append((*exp[:-1], total))
+            vector.append(total)
+            self.data.append(vector)
         
         self.data.reverse()
 
@@ -113,7 +128,7 @@ class TigerAgent(BaseAgent):
 class GoatAgent(BaseAgent):
     def __init__(self, board, LR=0.1, train=True):
         super().__init__(board, piece=Goat, LR=LR, train=train)
-        self.discount = 0.5
+        self.discount = 0.2
 
     def prepare_data(self):
         raw = []
@@ -126,9 +141,11 @@ class GoatAgent(BaseAgent):
             prev = exp[2]
         
         total = 0
-        for exp in raw:
-            total = exp[2] + self.discount * total
-            self.data.append((*exp[:-1], total))
+        for exp in raw[:-1]:
+            vector = flatten_sa_pair(exp[:-1]).tolist()
+            total = exp[-1] + self.discount * total
+            vector.append(total)
+            self.data.append(vector)
 
         self.data.reverse()
         

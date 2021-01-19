@@ -4,3 +4,4 @@ test.py
 secret.py
 .DS_Store
 experience*.txt
+model-*.pt

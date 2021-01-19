@@ -29,19 +29,7 @@ def new_board():
 
 @app.route('/next_move', methods= ['GET'])
 def next_move():
-    turn = request.args['turn']
-    game = session['board']
-    brd = Board(values= game['config'], goats= game['goats'])
-    
-
-    if turn == 'G':
-        player = GoatAgent(brd, train=False)
-        model = th.load('goatModel-learn.pt')
-    else:
-        player = TigerAgent(brd, train=False)
-        model = th.load('tigerModel-learn-big.pt')
-    
-    player.set_model(model)
+    brd, player = get_player_and_board()
     
     player.make_move()
     new_brd = jsonify(brd)
@@ -51,22 +39,11 @@ def next_move():
 
 @app.route('/make_move', methods= ['GET'])
 def make_move():
-    game = session['board']
-    brd = Board(values= game['config'], goats= game['goats'])
-    turn = request.args.get('turn', type=str)
+    brd, player = get_player_and_board()
     x = request.args.get('x', type=int)
     y = request.args.get('y', type=int)
     dx = request.args.get('dx', type=int)
     dy = request.args.get('dy', type=int)
-
-    if turn == 'G':
-        player = GoatAgent(brd, train=False)
-        model = th.load('goatModel-learn.pt')
-    else:
-        player = TigerAgent(brd, train=False)
-        model = th.load('tigerModel-learn-big.pt')
-    
-    player.set_model(model)
     
     player.make_move(((x, y), (dx, dy)))
 
@@ -77,22 +54,28 @@ def make_move():
 
 @app.route('/get_best_moves', methods= ['GET'])
 def get_best_moves():
+    _, player = get_player_and_board()
+    moves = player.get_moves_with_rewards()
+
+    return json.dumps(moves)
+
+
+def get_player_and_board():
     game = session['board']
     brd = Board(values= game['config'], goats= game['goats'])
     turn = request.args.get('turn', type=str)
 
     if turn == 'G':
         player = GoatAgent(brd, train=False)
-        model = th.load('goatModel-learn.pt')
+        model = th.load('model-goat-new.pt')
     else:
         player = TigerAgent(brd, train=False)
-        model = th.load('tigerModel-learn-big.pt')
+        model = th.load('model-tiger-big.pt')
     
     player.set_model(model)
-    
-    moves = player.get_moves_with_rewards()
 
-    return json.dumps(moves)
+    return brd, player
+
 
         
 if __name__ == '__main__':
