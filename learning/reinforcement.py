@@ -17,8 +17,10 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
     """
     Runs the simulation with the given parameters
     """
-    EPOCHS = 20000
-    n_plots = 200
+    EPOCHS = 50000
+    n_plots = 10
+    n = int(EPOCHS/n_plots)
+    
     moves_per_game = 20
     
     for LR in LRs:
@@ -28,8 +30,8 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
         avg_loss_tiger = []
 
         # Choosing which model to use
-        # tigerModel = NeuralNet()
-        tigerModel = th.load('model-tiger-big.pt')
+        tigerModel = NeuralNet()
+        # tigerModel = th.load('model-tiger-big.pt')
         goatModel = NeuralNet()
         # goatModel = th.load('goatModel-learn.pt')
 
@@ -76,10 +78,10 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
             # Save the experience from this iteration
             if Goat in save_experience:
-                goat_.save_experience('experience-goat-4.txt')
+                goat_.save_experience('experience-goat-5.txt')
             
             if Tiger in save_experience:
-                tiger_.save_experience('experience-tiger-4.txt')
+                tiger_.save_experience('experience-tiger-5.txt')
 
             # Aggregate the total reward in this round
             goat_reward = 0
@@ -96,19 +98,24 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
             # Learn from this experience
             if Goat in learn:
-                loss_goat = goat_.learn()
-                avg_loss_goat.append(loss_goat)
+                goat_.learn()
+                if i % n == 0:
+                    loss_goat = goat_.test('experience-goat-test.txt')
+                    avg_loss_goat.append(loss_goat)
 
             if Tiger in learn:
-                loss_tiger = tiger_.learn()
-                avg_loss_tiger.append(loss_tiger)
+                tiger_.learn()
+                if i % n == 0:
+                    loss_tiger = tiger_.test('experience-goat-test.txt')
+                    avg_loss_tiger.append(loss_tiger)
         
         # Plot the rewards vs iteration graph
         if plot:
             iters = range(EPOCHS)
-            n = int(EPOCHS/n_plots)
-            plt.plot(iters[::n], avg_rewards_goat[::n], 'b-')
-            plt.plot(iters[::n], avg_rewards_tiger[::n], 'r-')
+            if Goat in learn:
+                plt.plot(iters[::n], avg_loss_goat, 'b-')
+            if Tiger in learn:
+                plt.plot(iters[::n], avg_loss_tiger, 'r-')
 
     
     if plot:
@@ -126,4 +133,4 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
 if __name__ == '__main__':
     # LRs = [0.000000001, 0.000001, 0.0001, 0.001, 0.01, 0.1]
-    run_simulation(verbose=False, LRs=[0.025], save_model=[Goat], learn=[Goat], plot=True, save_experience=[Goat, Tiger])
+    run_simulation(verbose=False, LRs=[0.005], save_model=[Tiger], learn=[Tiger], plot=True, save_experience=[])

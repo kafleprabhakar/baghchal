@@ -10,6 +10,7 @@ from model import NeuralNet
 from player import AutoPlayer
 from pieces import Tiger, Goat
 from utils import flatten_sa_pair
+from dataset import Dataset
 
 
 class BaseAgent(AutoPlayer):
@@ -20,12 +21,13 @@ class BaseAgent(AutoPlayer):
         self.optimizer = th.optim.Adam(self.model.parameters(), lr=LR)
         self.loss_func = th.nn.MSELoss()
         self.epsilon = 1
-        self.eps_dec = 0.002
+        self.eps_dec = 0.0005
         self.eps_min = 0.2
         self.experience = []
         self.data = None
         self.discount = 0.3
         self.train = train
+        self.test_data = None
 
     def set_model(self, model):
         self.model = model
@@ -105,6 +107,24 @@ class BaseAgent(AutoPlayer):
         self.epsilon = max(self.epsilon, self.eps_min)
 
         return total_loss/len(self.data)
+    
+    def test(self, test_file):
+        if not self.test_data:
+            dataset = Dataset(test_file)
+            self.test_data = th.utils.data.DataLoader(dataset, batch_size=20)
+        
+        total_loss = 0
+
+        for data, target in self.test_data:
+            data = data.float()
+            pred = self.model(data)
+
+            target = target.float().reshape(-1, 1)
+            loss = self.loss_func(pred, target)
+
+            total_loss += loss.item()
+
+        return total_loss / len(dataset)
 
 
 class TigerAgent(BaseAgent):

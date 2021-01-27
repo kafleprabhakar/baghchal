@@ -70,7 +70,7 @@ def get_player_and_board():
         model = th.load('model-goat-new.pt')
     else:
         player = TigerAgent(brd, train=False)
-        model = th.load('model-tiger-big.pt')
+        model = th.load('model-tiger-new.pt')
     
     player.set_model(model)
 
