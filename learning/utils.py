@@ -7,12 +7,11 @@ from pieces import Goat, Tiger, Empty
 moves = [(i, j) for i in range(-1, 2) for j in range(-1, 2)]
 moves[4] = '+' # Corresponding to move (0, 0)
 
-def flatten_sa_pair(inp):
+
+def flatten_state(state):
     """
-    Given a state, action pair at a form of tuples, flattens and
-    one hot encodes it
+    Given a state of the board, returns a one hot encoding of the board configuration
     """
-    state, action = inp
     state_vector = []
     for row in state:
         for val in row:
@@ -23,6 +22,17 @@ def flatten_sa_pair(inp):
             else:
                 one_hot = [0, 0]
             state_vector.append(one_hot)
+
+    return state_vector
+
+
+def flatten_sa_pair(inp):
+    """
+    Given a state, action pair at a form of tuples, flattens and
+    one hot encodes it
+    """
+    state, action = inp
+    state_vector = flatten_state(state)
     
     # move_vector = [1] if move == '+' else [0] # For Goat model
 

@@ -6,18 +6,18 @@ import torch as th
 from tqdm import tqdm
 import csv
 
-from agent import TigerAgent, GoatAgent
+from agent import TigerAgent, GoatAgent, GoatPolicyAgent
 from board import Board
 from player import AutoPlayer
 from pieces import Goat, Tiger
-from model import NeuralNet
+from model import NeuralNet, PolicyModel
 from utils import flatten_sa_pair
 
 def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=True, save_experience=[]):
     """
     Runs the simulation with the given parameters
     """
-    EPOCHS = 50000
+    EPOCHS = 50
     n_plots = 10
     n = int(EPOCHS/n_plots)
     
@@ -32,7 +32,8 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
         # Choosing which model to use
         tigerModel = NeuralNet()
         # tigerModel = th.load('model-tiger-big.pt')
-        goatModel = NeuralNet()
+        goatModel = PolicyModel()
+        # goatModel = NeuralNet()
         # goatModel = th.load('goatModel-learn.pt')
 
         for i in tqdm(range(EPOCHS)):
@@ -41,7 +42,7 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
             brd.init_game()
 
             # Initialize the agents and set their model
-            goat_ = GoatAgent(brd, LR=LR)
+            goat_ = GoatPolicyAgent(brd, LR=LR)
             goat_.set_model(goatModel)
 
             tiger_ = TigerAgent(brd, LR)
@@ -84,16 +85,16 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
                 tiger_.save_experience('experience-tiger-5.txt')
 
             # Aggregate the total reward in this round
-            goat_reward = 0
-            for exp in goat_.data:
-                goat_reward += exp[-1]
+            # goat_reward = 0
+            # for exp in goat_.data:
+            #     goat_reward += exp[-1]
 
-            tiger_reward = 0
-            for exp in tiger_.data:
-                tiger_reward += exp[-1]
+            # tiger_reward = 0
+            # for exp in tiger_.data:
+            #     tiger_reward += exp[-1]
 
-            avg_rewards_goat.append(goat_reward/len(goat_.data))
-            avg_rewards_tiger.append(tiger_reward/len(tiger_.data))
+            # avg_rewards_goat.append(goat_reward/len(goat_.data))
+            # avg_rewards_tiger.append(tiger_reward/len(tiger_.data))
 
 
             # Learn from this experience
@@ -133,4 +134,4 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
 if __name__ == '__main__':
     # LRs = [0.000000001, 0.000001, 0.0001, 0.001, 0.01, 0.1]
-    run_simulation(verbose=False, LRs=[0.005], save_model=[Tiger], learn=[Tiger], plot=True, save_experience=[])
+    run_simulation(verbose=False, LRs=[0.005], save_model=[], learn=[], plot=False, save_experience=[])

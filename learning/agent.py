@@ -6,10 +6,10 @@ import random
 import copy
 import csv
 
-from model import NeuralNet
+from model import NeuralNet, PolicyModel
 from player import AutoPlayer
 from pieces import Tiger, Goat
-from utils import flatten_sa_pair
+from utils import flatten_sa_pair, flatten_state
 from dataset import Dataset
 
 
@@ -17,9 +17,6 @@ class BaseAgent(AutoPlayer):
     def __init__(self, board, piece, LR, train):
         super().__init__(board, piece)
         self.LR = LR
-        self.model = NeuralNet()
-        self.optimizer = th.optim.Adam(self.model.parameters(), lr=LR)
-        self.loss_func = th.nn.MSELoss()
         self.epsilon = 1
         self.eps_dec = 0.0005
         self.eps_min = 0.2
@@ -46,6 +43,32 @@ class BaseAgent(AutoPlayer):
 
         self.experience.append((prev_state, move, r))
 
+    def get_random_move(self):
+        valid_moves = self.get_all_moves()
+        if len(valid_moves) == 0:
+            raise Exception
+        return random.choice(valid_moves)
+            
+    def save_experience(self, filename='experience.txt'):
+        """
+        Saves the experience of the current agent for the current round by
+        appending it to the file specified as filename
+        """
+        with open(filename, 'a') as file:
+            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for exp in self.data:
+                writer.writerow(exp)
+
+
+
+class DQNAgent(BaseAgent):
+    def __init__(self, board, piece, LR, train):
+        super().__init__(board, piece, LR, train)
+        self.model = NeuralNet()
+        self.optimizer = th.optim.Adam(self.model.parameters(), lr=LR)
+        self.loss_func = th.nn.MSELoss()
+
+
     def get_moves_with_rewards(self):
         valid_moves = self.get_all_moves()
 
@@ -57,12 +80,6 @@ class BaseAgent(AutoPlayer):
         
         return moves
 
-    def get_random_move(self):
-        valid_moves = self.get_all_moves()
-        if len(valid_moves) == 0:
-            raise Exception
-        return random.choice(valid_moves)
-
     def get_best_move(self):
         moves = self.get_moves_with_rewards()
 
@@ -72,16 +89,7 @@ class BaseAgent(AutoPlayer):
         best_move = max(moves, key=lambda x: x[1])
 
         return best_move[0]
-            
-    def save_experience(self, filename='experience.txt'):
-        """
-        Saves the experience of the current agent for the current round by
-        appending it to the file specified as filename
-        """
-        with open(filename, 'a') as file:
-            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            for exp in self.data:
-                writer.writerow(exp)
+
 
     def learn(self):
         self.optimizer.zero_grad()
@@ -127,7 +135,7 @@ class BaseAgent(AutoPlayer):
         return total_loss / len(dataset)
 
 
-class TigerAgent(BaseAgent):
+class TigerAgent(DQNAgent):
     def __init__(self, board, LR=0.1, train=True):
         super().__init__(board, piece=Tiger, LR=LR, train=train)
         self.discount = 0.3
@@ -145,7 +153,7 @@ class TigerAgent(BaseAgent):
         self.data.reverse()
 
 
-class GoatAgent(BaseAgent):
+class GoatAgent(DQNAgent):
     def __init__(self, board, LR=0.1, train=True):
         super().__init__(board, piece=Goat, LR=LR, train=train)
         self.discount = 0.2
@@ -169,3 +177,98 @@ class GoatAgent(BaseAgent):
 
         self.data.reverse()
         
+
+
+
+
+
+
+class PolicyAgent(BaseAgent):
+    def __init__(self, board, piece, LR, train):
+        super().__init__(board, piece, LR, train)
+        self.model = PolicyModel()
+        self.optimizer = th.optim.Adam(self.model.parameters(), lr=LR)
+        self.loss_func = th.nn.CrossEntropyLoss()
+
+
+    def get_moves_with_rewards(self):
+        valid_moves = self.get_all_moves()
+
+        if len(valid_moves) == 0:
+            raise Exception
+
+        valid_moves_idx = map(get_move_idx, valid_moves)
+
+        best_move = None
+        inp = flatten_state(self.board.values)
+        pred = self.model(inp)
+
+        valid_moves_prob = [(valid_moves[i], pred[idx]) for i, idx in enumerate(valid_moves_idx)]
+
+        return valid_moves_prob
+        
+        # valid_moves = self.get_all_moves()
+
+        # moves = []
+        # for move in valid_moves:
+        #     inp = flatten_sa_pair((self.board.values, move)).float()
+        #     reward = self.model(inp)
+        #     moves.append((move, reward.item()))
+        
+        # return moves
+
+
+    def get_best_move(self):
+        valid_moves = self.get_moves_with_rewards()
+        moves, rewards = zip(valid_moves)
+
+        best_move_idx = th.multinomial(rewards, 1)
+        return moves[best_move_idx]
+
+    def learn(self):
+        self.optimizer.zero_grad()
+
+        data = th.tensor(self.data)
+        
+        n_features = data.shape[1] - 1
+        features, target = th.split(data, [n_features, 1], dim=1)
+
+        pred = self.model(features.float())
+
+        loss = self.loss_func(pred, target).to(self.model.device)
+        loss.backward()
+
+
+        self.optimizer.step()
+
+        # Decrease the epsilon to do more exploitation
+        self.epsilon -= self.eps_dec
+        self.epsilon = max(self.epsilon, self.eps_min)
+
+        return loss.item()/len(self.data)
+    
+    def test(self, test_file):
+        if not self.test_data:
+            dataset = Dataset(test_file)
+            self.test_data = th.utils.data.DataLoader(dataset, batch_size=20)
+        
+        total_loss = 0
+
+        for data, target in self.test_data:
+            data = data.float()
+            pred = self.model(data)
+
+            loss = self.loss_func(pred, target)
+
+            total_loss += loss.item()
+
+        return total_loss / len(dataset)
+
+
+class GoatPolicyAgent(PolicyAgent):
+    def __init__(self, board, LR=0.1, train=True):
+        super().__init__(board, piece=Goat, LR=LR, train=train)
+        self.discount = 0.2
+
+    def prepare_data(self):
+        pass
