@@ -5,3 +5,5 @@ secret.py
 .DS_Store
 experience*.txt
 model-*.pt
+test.ipynb
+.ipynb_checkpoints

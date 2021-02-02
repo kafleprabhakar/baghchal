@@ -9,7 +9,7 @@ import csv
 from model import NeuralNet, PolicyModel
 from player import AutoPlayer
 from pieces import Tiger, Goat
-from utils import flatten_sa_pair, flatten_state
+from utils import flatten_sa_pair, encode_state, get_move_idx, get_move_from_idx
 from dataset import Dataset
 
 
@@ -18,7 +18,7 @@ class BaseAgent(AutoPlayer):
         super().__init__(board, piece)
         self.LR = LR
         self.epsilon = 1
-        self.eps_dec = 0.0005
+        self.eps_dec = 0.0001
         self.eps_min = 0.2
         self.experience = []
         self.data = None
@@ -47,8 +47,27 @@ class BaseAgent(AutoPlayer):
         valid_moves = self.get_all_moves()
         if len(valid_moves) == 0:
             raise Exception
+        
         return random.choice(valid_moves)
-            
+    
+
+    def get_best_move(self):
+        valid_moves = self.get_moves_with_rewards()
+        
+        if len(valid_moves) == 0:
+            raise Exception
+        
+        moves, rewards = zip(*valid_moves)
+        rewards = th.Tensor(rewards)
+
+        activation = th.nn.Softmax()
+        scaled_rewards = activation(rewards)
+        
+        best_move_idx = th.multinomial(scaled_rewards, 1)
+        
+        return moves[best_move_idx]
+
+
     def save_experience(self, filename='experience.txt'):
         """
         Saves the experience of the current agent for the current round by
@@ -80,15 +99,15 @@ class DQNAgent(BaseAgent):
         
         return moves
 
-    def get_best_move(self):
-        moves = self.get_moves_with_rewards()
+    # def get_best_move(self):
+    #     moves = self.get_moves_with_rewards()
 
-        if len(moves) == 0:
-            raise Exception
+    #     if len(moves) == 0:
+    #         raise Exception
 
-        best_move = max(moves, key=lambda x: x[1])
+    #     best_move = max(moves, key=lambda x: x[1])
 
-        return best_move[0]
+    #     return best_move[0]
 
 
     def learn(self):
@@ -118,7 +137,7 @@ class DQNAgent(BaseAgent):
     
     def test(self, test_file):
         if not self.test_data:
-            dataset = Dataset(test_file)
+            dataset = Dataset(test_file, featuresCols=range(84), targetCol=[84])
             self.test_data = th.utils.data.DataLoader(dataset, batch_size=20)
         
         total_loss = 0
@@ -194,16 +213,13 @@ class PolicyAgent(BaseAgent):
     def get_moves_with_rewards(self):
         valid_moves = self.get_all_moves()
 
-        if len(valid_moves) == 0:
-            raise Exception
-
         valid_moves_idx = map(get_move_idx, valid_moves)
 
         best_move = None
-        inp = flatten_state(self.board.values)
+        inp = encode_state(self.board.values).float()
         pred = self.model(inp)
 
-        valid_moves_prob = [(valid_moves[i], pred[idx]) for i, idx in enumerate(valid_moves_idx)]
+        valid_moves_prob = [[valid_moves[i], pred[idx].item()] for i, idx in enumerate(valid_moves_idx)]
 
         return valid_moves_prob
         
@@ -218,25 +234,20 @@ class PolicyAgent(BaseAgent):
         # return moves
 
 
-    def get_best_move(self):
-        valid_moves = self.get_moves_with_rewards()
-        moves, rewards = zip(valid_moves)
-
-        best_move_idx = th.multinomial(rewards, 1)
-        return moves[best_move_idx]
-
     def learn(self):
         self.optimizer.zero_grad()
 
         data = th.tensor(self.data)
         
-        n_features = data.shape[1] - 1
-        features, target = th.split(data, [n_features, 1], dim=1)
+        n_features = data.shape[1] - 2
+        state, move_idx, reward = th.split(data, [n_features, 1, 1], dim=1)
+        target = move_idx.flatten().long()
 
-        pred = self.model(features.float())
+        pred = self.model(state.float())
 
         loss = self.loss_func(pred, target).to(self.model.device)
-        loss.backward()
+        actual_loss = th.mean(loss * reward)
+        actual_loss.backward()
 
 
         self.optimizer.step()
@@ -245,11 +256,11 @@ class PolicyAgent(BaseAgent):
         self.epsilon -= self.eps_dec
         self.epsilon = max(self.epsilon, self.eps_min)
 
-        return loss.item()/len(self.data)
+        return actual_loss.item()/len(self.data)
     
     def test(self, test_file):
         if not self.test_data:
-            dataset = Dataset(test_file)
+            dataset = Dataset(test_file, featuresCols=range(0, 50), targetCol=[50, 51])
             self.test_data = th.utils.data.DataLoader(dataset, batch_size=20)
         
         total_loss = 0
@@ -258,9 +269,13 @@ class PolicyAgent(BaseAgent):
             data = data.float()
             pred = self.model(data)
 
+            # print('the target', target)
+            target, reward = th.split(target, [1, 1], dim=1)
+            target = target.flatten()
+
             loss = self.loss_func(pred, target)
 
-            total_loss += loss.item()
+            total_loss += th.mean(loss * reward).item()
 
         return total_loss / len(dataset)
 
@@ -272,3 +287,27 @@ class GoatPolicyAgent(PolicyAgent):
 
     def prepare_data(self):
         pass
+
+
+class TigerPolicyAgent(PolicyAgent):
+    def __init__(self, board, LR=0.1, train=True):
+        super().__init__(board, piece=Tiger, LR=LR, train=train)
+        self.discount = 0.2
+
+    def prepare_data(self):
+        self.data = []
+        total = 0
+        for exp in self.experience[-1::-1]:
+            state, move, reward = exp
+
+            vector = encode_state(state).flatten().tolist()
+
+            move_idx = get_move_idx(move)
+            vector.append(move_idx)
+
+            total = reward + self.discount * total
+            vector.append(total)
+
+            self.data.append(vector)
+        
+        self.data.reverse()

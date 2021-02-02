@@ -2,19 +2,11 @@ import torch as th
 import pandas as pd
 
 class Dataset(th.utils.data.Dataset):
-    def __init__(self, filename, targetCol = None):
+    def __init__(self, filename, featuresCols, targetCol):
         dataset = pd.read_csv(filename)
-
-        # If no label Column is specified, take the last column by default
-        if targetCol is None:
-            targetCol = dataset.columns.values.tolist()[-1]
-
-        # dataset = dataset.sample(frac=1).reset_index(drop=True) # Shuffle
-        targets = dataset[targetCol]
-        dataset.drop(targetCol, axis = 1, inplace = True) # Drop label to get features
         
-        self.targets = targets
-        self.features = dataset
+        self.targets = dataset.iloc[:, targetCol]
+        self.features = dataset.iloc[:, featuresCols]
     
     def __len__(self):
         return len(self.features)
@@ -27,4 +19,5 @@ class Dataset(th.utils.data.Dataset):
             idx = idx.tolist()
         
         return th.from_numpy(self.features.iloc[idx].to_numpy()).type(th.FloatTensor),\
-             th.tensor(self.targets[idx]).type(th.LongTensor)
+             th.tensor(self.targets.iloc[idx]).type(th.LongTensor)
+

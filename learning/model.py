@@ -19,13 +19,17 @@ class NeuralNet(th.nn.Module):
         return self.layers(data)
 
 class PolicyModel(th.nn.Module):
-    def __init__(self, input_dims=50, output_dims=25*9):
+    def __init__(self, output_dims=25*9):
         super(PolicyModel, self).__init__()
         self.layers = th.nn.Sequential(
-            th.nn.Linear(input_dims, 128),
+            th.nn.Conv2d(2, 8, 3, 1),
             th.nn.ReLU(),
-            th.nn.Linear(128, 64),
+            th.nn.BatchNorm2d(8),
+            th.nn.Flatten(),
+            th.nn.Linear(72, 64),
             th.nn.ReLU(),
+            # th.nn.Linear(128, 64),
+            # th.nn.ReLU(),
             th.nn.Linear(64, output_dims)
         )
 
@@ -34,4 +38,7 @@ class PolicyModel(th.nn.Module):
 
     def forward(self, data):
         data.to(self.device)
+        if len(data.shape) < 3:
+            # print('reshaping data')
+            data = data.reshape(-1, 2, 5, 5)
         return self.layers(data)

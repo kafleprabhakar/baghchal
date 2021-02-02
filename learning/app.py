@@ -3,7 +3,7 @@ sys.path.append(os.path.join('..', 'backend'))
 
 from board import Board
 # from player import AutoPlayer
-from agent import GoatAgent, TigerAgent
+from agent import GoatAgent, TigerAgent, TigerPolicyAgent
 from pieces import Goat, Tiger
 from utils import jsonify
 from secret import SECRET_KEY
@@ -69,8 +69,8 @@ def get_player_and_board():
         player = GoatAgent(brd, train=False)
         model = th.load('model-goat-new.pt')
     else:
-        player = TigerAgent(brd, train=False)
-        model = th.load('model-tiger-new.pt')
+        player = TigerPolicyAgent(brd, train=False)
+        model = th.load('model-tiger-policy-learn.pt')
     
     player.set_model(model)
 

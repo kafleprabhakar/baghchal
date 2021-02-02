@@ -6,7 +6,7 @@ import torch as th
 from tqdm import tqdm
 import csv
 
-from agent import TigerAgent, GoatAgent, GoatPolicyAgent
+from agent import TigerAgent, GoatAgent, GoatPolicyAgent, TigerPolicyAgent
 from board import Board
 from player import AutoPlayer
 from pieces import Goat, Tiger
@@ -17,8 +17,8 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
     """
     Runs the simulation with the given parameters
     """
-    EPOCHS = 50
-    n_plots = 10
+    EPOCHS = 10000
+    n_plots = 20
     n = int(EPOCHS/n_plots)
     
     moves_per_game = 20
@@ -30,9 +30,9 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
         avg_loss_tiger = []
 
         # Choosing which model to use
-        tigerModel = NeuralNet()
+        tigerModel = PolicyModel()
         # tigerModel = th.load('model-tiger-big.pt')
-        goatModel = PolicyModel()
+        goatModel = NeuralNet()
         # goatModel = NeuralNet()
         # goatModel = th.load('goatModel-learn.pt')
 
@@ -42,10 +42,10 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
             brd.init_game()
 
             # Initialize the agents and set their model
-            goat_ = GoatPolicyAgent(brd, LR=LR)
+            goat_ = GoatAgent(brd, LR=LR)
             goat_.set_model(goatModel)
 
-            tiger_ = TigerAgent(brd, LR)
+            tiger_ = TigerPolicyAgent(brd, LR)
             tiger_.set_model(tigerModel)
 
             players = [goat_, tiger_]
@@ -62,6 +62,7 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
                 for player in players:
                     try:
                         player.make_move()
+                        # print('player', player)
 
                         if verbose:
                             sys.stdout.write("\033[6F")
@@ -79,10 +80,10 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
             # Save the experience from this iteration
             if Goat in save_experience:
-                goat_.save_experience('experience-goat-5.txt')
+                goat_.save_experience('experience-goat-dqn-test.txt')
             
             if Tiger in save_experience:
-                tiger_.save_experience('experience-tiger-5.txt')
+                tiger_.save_experience('experience-tiger-policy-test.txt')
 
             # Aggregate the total reward in this round
             # goat_reward = 0
@@ -101,17 +102,18 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
             if Goat in learn:
                 goat_.learn()
                 if i % n == 0:
-                    loss_goat = goat_.test('experience-goat-test.txt')
+                    loss_goat = goat_.test('experience-goat-dqn-test.txt')
                     avg_loss_goat.append(loss_goat)
 
             if Tiger in learn:
                 tiger_.learn()
                 if i % n == 0:
-                    loss_tiger = tiger_.test('experience-goat-test.txt')
+                    loss_tiger = tiger_.test('experience-tiger-policy-test.txt')
                     avg_loss_tiger.append(loss_tiger)
         
         # Plot the rewards vs iteration graph
         if plot:
+            # print('avg tiger loss', avg_loss_tiger)
             iters = range(EPOCHS)
             if Goat in learn:
                 plt.plot(iters[::n], avg_loss_goat, 'b-')
@@ -125,13 +127,14 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
     # Save the currently trained model
     if Goat in save_model:
-        th.save(goatModel, 'model-goat-new.pt')
+        th.save(goatModel, 'model-goat-dqn.pt')
     
     if Tiger in save_model:
-        th.save(tigerModel, 'model-tiger-new.pt')
+        th.save(tigerModel, 'model-tiger-policy.pt')
 
     
 
 if __name__ == '__main__':
     # LRs = [0.000000001, 0.000001, 0.0001, 0.001, 0.01, 0.1]
-    run_simulation(verbose=False, LRs=[0.005], save_model=[], learn=[], plot=False, save_experience=[])
+    run_simulation(verbose=False, LRs=[0.0005], save_model=[], learn=[Tiger], plot=True, save_experience=[])
+    # run_simulation(verbose=False, LRs=[0.005], save_model=[], learn=[Tiger, Goat], plot=True, save_experience=[Tiger, Goat])
