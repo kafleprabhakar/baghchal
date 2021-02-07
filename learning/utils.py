@@ -1,7 +1,9 @@
 import os, sys
 sys.path.append(os.path.join('..', 'backend'))
 
+import matplotlib.pyplot as plt
 import torch as th
+import pandas as pd
 from pieces import Goat, Tiger, Empty
 
 moves = [(i, j) for i in range(-1, 2) for j in range(-1, 2)]
@@ -110,3 +112,39 @@ def get_move_from_idx(idx):
 def jsonify(board):
     config = [[str(val) for val in row] for row in board.values]
     return {'config': config, 'goats': board.goats}
+
+
+class PeriodicPlotter():
+    def __init__(self, color='r', x_lim=None, y_lim=None):
+        plt.ion()
+        self.line, = plt.plot([], [], color + '-')
+        self.line.axes.set_xlim(*x_lim)
+        self.line.axes.set_ylim(*y_lim)
+
+    def plot(self, x, y):
+        self.line.set_xdata(x)
+        self.line.set_ydata(y)
+        plt.draw()
+        plt.pause(0.01)
+
+
+
+class Dataset(th.utils.data.Dataset):
+    def __init__(self, filename, featuresCols, targetCol):
+        dataset = pd.read_csv(filename)
+        
+        self.targets = dataset.iloc[:, targetCol]
+        self.features = dataset.iloc[:, featuresCols]
+    
+    def __len__(self):
+        return len(self.features)
+    
+    def __getitem__(self, idx):
+        """
+        Get the item at specified index
+        """
+        if th.is_tensor(idx):
+            idx = idx.tolist()
+        
+        return th.from_numpy(self.features.iloc[idx].to_numpy()).type(th.FloatTensor),\
+             th.tensor(self.targets.iloc[idx]).type(th.LongTensor)

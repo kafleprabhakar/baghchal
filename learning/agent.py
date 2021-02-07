@@ -10,7 +10,7 @@ from model import NeuralNet, PolicyModel
 from player import AutoPlayer
 from pieces import Tiger, Goat
 from utils import flatten_sa_pair, encode_state, get_move_idx, get_move_from_idx
-from dataset import Dataset
+from utils import Dataset
 
 
 class BaseAgent(AutoPlayer):

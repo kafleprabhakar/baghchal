@@ -7,3 +7,4 @@ experience*.txt
 model-*.pt
 test.ipynb
 .ipynb_checkpoints
+result*.png

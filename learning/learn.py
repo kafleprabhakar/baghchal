@@ -4,7 +4,7 @@ from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 from model import NeuralNet
-from dataset import Dataset
+from utils import Dataset
 from consts import GAME_LENGTH
 
 EPOCHS = 4

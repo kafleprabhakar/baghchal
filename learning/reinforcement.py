@@ -11,8 +11,7 @@ from board import Board
 from player import AutoPlayer
 from pieces import Goat, Tiger
 from model import NeuralNet, PolicyModel
-from utils import flatten_sa_pair
-from plotter import PeriodicPlotter
+from utils import flatten_sa_pair, PeriodicPlotter
 
 def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=True, save_experience=[]):
     """
@@ -41,7 +40,6 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
         tigerModel = NeuralNet()
         # tigerModel = th.load('model-tiger-big.pt')
         goatModel = NeuralNet()
-        # goatModel = NeuralNet()
         # goatModel = th.load('goatModel-learn.pt')
 
         for i in tqdm(range(EPOCHS)):
@@ -111,31 +109,19 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
 
             if Goat in learn:
                 goat_.learn()
-                if i % n == 0:
+                if plot and i % n == 0:
                     loss_goat = goat_.test('experience-goat-dqn-test.txt')
                     avg_loss_goat.append(loss_goat)
-                    # line.set_xdata(iters)
-                    # line.set_ydata(avg_loss_goat)
-                    # plt.draw()
-                    # plt.pause(0.01)
                     goat_plot.plot(iters, avg_loss_goat)
 
             if Tiger in learn:
                 tiger_.learn()
-                if i % n == 0:
+                if plot and i % n == 0:
                     loss_tiger = tiger_.test('experience-tiger-test.txt')
                     avg_rewards_tiger.append(tiger_reward/len(tiger_.data))
                     avg_loss_tiger.append(loss_tiger)
                     tiger_plot.plot(iters, avg_loss_tiger)
         
-        # Plot the rewards vs iteration graph
-        if plot:
-            # print('avg tiger loss', avg_loss_tiger)
-            iters = range(EPOCHS)
-            # if Goat in learn:
-            #     plt.plot(iters[::n], avg_loss_goat, 'b-')
-            # if Tiger in learn:
-            #     plt.plot(iters[::n], avg_loss_tiger, 'r-')
 
     
     if plot:
