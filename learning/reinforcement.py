@@ -12,13 +12,14 @@ from player import AutoPlayer
 from pieces import Goat, Tiger
 from model import NeuralNet, PolicyModel
 from utils import flatten_sa_pair
+from plotter import PeriodicPlotter
 
 def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=True, save_experience=[]):
     """
     Runs the simulation with the given parameters
     """
-    EPOCHS = 10000
-    n_plots = 20
+    EPOCHS = 100
+    n_plots = 4
     n = int(EPOCHS/n_plots)
     
     moves_per_game = 20
@@ -29,8 +30,15 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
         avg_loss_goat = []
         avg_loss_tiger = []
 
+        if plot and len(learn) != 0:
+            plt.ion()
+            iters = []
+            tiger_plot = PeriodicPlotter('r', x_lim=(0, EPOCHS), y_lim=(0, 10))
+            goat_plot = PeriodicPlotter('b', x_lim=(0, EPOCHS), y_lim=(0, 10))
+
+
         # Choosing which model to use
-        tigerModel = PolicyModel()
+        tigerModel = NeuralNet()
         # tigerModel = th.load('model-tiger-big.pt')
         goatModel = NeuralNet()
         # goatModel = NeuralNet()
@@ -45,7 +53,7 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
             goat_ = GoatAgent(brd, LR=LR)
             goat_.set_model(goatModel)
 
-            tiger_ = TigerPolicyAgent(brd, LR)
+            tiger_ = TigerAgent(brd, LR)
             tiger_.set_model(tigerModel)
 
             players = [goat_, tiger_]
@@ -83,58 +91,68 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
                 goat_.save_experience('experience-goat-dqn-test.txt')
             
             if Tiger in save_experience:
-                tiger_.save_experience('experience-tiger-policy-test.txt')
+                tiger_.save_experience('experience-tiger-dqn-test.txt')
 
             # Aggregate the total reward in this round
             # goat_reward = 0
             # for exp in goat_.data:
             #     goat_reward += exp[-1]
 
-            # tiger_reward = 0
-            # for exp in tiger_.data:
-            #     tiger_reward += exp[-1]
+            tiger_reward = 0
+            for exp in tiger_.data:
+                tiger_reward += exp[-1]
 
             # avg_rewards_goat.append(goat_reward/len(goat_.data))
-            # avg_rewards_tiger.append(tiger_reward/len(tiger_.data))
 
 
             # Learn from this experience
+            if plot and i % n == 0:
+                iters.append(i)
+
             if Goat in learn:
                 goat_.learn()
                 if i % n == 0:
                     loss_goat = goat_.test('experience-goat-dqn-test.txt')
                     avg_loss_goat.append(loss_goat)
+                    # line.set_xdata(iters)
+                    # line.set_ydata(avg_loss_goat)
+                    # plt.draw()
+                    # plt.pause(0.01)
+                    goat_plot.plot(iters, avg_loss_goat)
 
             if Tiger in learn:
                 tiger_.learn()
                 if i % n == 0:
-                    loss_tiger = tiger_.test('experience-tiger-policy-test.txt')
+                    loss_tiger = tiger_.test('experience-tiger-test.txt')
+                    avg_rewards_tiger.append(tiger_reward/len(tiger_.data))
                     avg_loss_tiger.append(loss_tiger)
+                    tiger_plot.plot(iters, avg_loss_tiger)
         
         # Plot the rewards vs iteration graph
         if plot:
             # print('avg tiger loss', avg_loss_tiger)
             iters = range(EPOCHS)
-            if Goat in learn:
-                plt.plot(iters[::n], avg_loss_goat, 'b-')
-            if Tiger in learn:
-                plt.plot(iters[::n], avg_loss_tiger, 'r-')
+            # if Goat in learn:
+            #     plt.plot(iters[::n], avg_loss_goat, 'b-')
+            # if Tiger in learn:
+            #     plt.plot(iters[::n], avg_loss_tiger, 'r-')
 
     
     if plot:
         # plt.legend(['LR: %f'% LR for LR in LRs])
         plt.show()
+        plt.savefig('result1.png')
 
     # Save the currently trained model
     if Goat in save_model:
         th.save(goatModel, 'model-goat-dqn.pt')
     
     if Tiger in save_model:
-        th.save(tigerModel, 'model-tiger-policy.pt')
+        th.save(tigerModel, 'model-tiger-dqn.pt')
 
     
 
 if __name__ == '__main__':
     # LRs = [0.000000001, 0.000001, 0.0001, 0.001, 0.01, 0.1]
-    run_simulation(verbose=False, LRs=[0.0005], save_model=[], learn=[Tiger], plot=True, save_experience=[])
+    run_simulation(verbose=False, LRs=[0.0025], save_model=[], learn=[Goat, Tiger], plot=True, save_experience=[])
     # run_simulation(verbose=False, LRs=[0.005], save_model=[], learn=[Tiger, Goat], plot=True, save_experience=[Tiger, Goat])

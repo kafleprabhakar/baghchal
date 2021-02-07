@@ -25,6 +25,8 @@ def encode_state(state):
             vector_row.append(one_hot)
         state_vector.append(vector_row)
 
+    # Transpose to a 2 * 5 * 5 tensor representing the position of
+    # tiger and goats in the 5 * 5 board
     return th.tensor(state_vector).transpose(0, 2).transpose(1, 2)
 
 

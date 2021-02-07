@@ -292,7 +292,7 @@ class GoatPolicyAgent(PolicyAgent):
 class TigerPolicyAgent(PolicyAgent):
     def __init__(self, board, LR=0.1, train=True):
         super().__init__(board, piece=Tiger, LR=LR, train=train)
-        self.discount = 0.2
+        self.discount = 0.4
 
     def prepare_data(self):
         self.data = []

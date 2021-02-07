@@ -67,10 +67,10 @@ def get_player_and_board():
 
     if turn == 'G':
         player = GoatAgent(brd, train=False)
-        model = th.load('model-goat-new.pt')
+        model = th.load('model-goat-dqn.pt')
     else:
-        player = TigerPolicyAgent(brd, train=False)
-        model = th.load('model-tiger-policy-learn.pt')
+        player = TigerAgent(brd, train=False)
+        model = th.load('model-tiger-policy.pt')
     
     player.set_model(model)
 
