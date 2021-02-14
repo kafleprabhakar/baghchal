@@ -7,15 +7,16 @@ import copy
 import csv
 
 from model import NeuralNet, PolicyModel
-from player import AutoPlayer
-from pieces import Tiger, Goat
+# from player import AutoPlayer
+from pieces import Tiger, Goat, Empty
 from utils import flatten_sa_pair, encode_state, get_move_idx, get_move_from_idx
 from utils import Dataset
 
 
-class BaseAgent(AutoPlayer):
+class BaseAgent():
     def __init__(self, board, piece, LR, train):
-        super().__init__(board, piece)
+        self.board = board
+        self.piece = piece
         self.LR = LR
         self.epsilon = 1
         self.eps_dec = 0.0001
@@ -29,6 +30,23 @@ class BaseAgent(AutoPlayer):
     def set_model(self, model):
         self.model = model
         self.optimizer = th.optim.Adam(self.model.parameters(), lr=self.LR)
+
+
+    def get_all_moves(self):
+        if self.piece == Goat and self.board.goats < 20:
+            empty = self.board.get_positions(Empty)
+            moves = [((i, j), '+') for i, j in empty]
+        else:
+            positions = self.board.get_positions(self.piece)
+            moves = []
+            for pos in positions:
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        if self.board.check_move(pos, (dx, dy)):
+                            moves.append((pos, (dx, dy)))
+        
+        return moves
+
 
     def make_move(self, move=None):
         if move is None:
@@ -113,7 +131,6 @@ class DQNAgent(BaseAgent):
     def learn(self):
         self.optimizer.zero_grad()
 
-        total_loss = 0
         data = th.tensor(self.data).float()
         
         n_features = data.shape[1] - 1
@@ -269,7 +286,6 @@ class PolicyAgent(BaseAgent):
             data = data.float()
             pred = self.model(data)
 
-            # print('the target', target)
             target, reward = th.split(target, [1, 1], dim=1)
             target = target.flatten()
 

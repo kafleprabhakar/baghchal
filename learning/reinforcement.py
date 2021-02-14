@@ -8,7 +8,6 @@ import csv
 
 from agent import TigerAgent, GoatAgent, GoatPolicyAgent, TigerPolicyAgent
 from board import Board
-from player import AutoPlayer
 from pieces import Goat, Tiger
 from model import NeuralNet, PolicyModel
 from utils import flatten_sa_pair, PeriodicPlotter
@@ -74,15 +73,12 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
                             sys.stdout.write("\033[6F")
                             print(brd)
                             time.sleep(0.5)
-                    except: # When the player doesn't have a move
+                    except Exception as e: # When the player doesn't have a move
                         over = True
                         break
                 if over:
                     break
-            
-            # Prepare data for learning or saving
-            goat_.prepare_data()
-            tiger_.prepare_data()
+
 
             # Save the experience from this iteration
             if Goat in save_experience:
@@ -92,13 +88,7 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
                 tiger_.save_experience('experience-tiger-dqn-test.txt')
 
             # Aggregate the total reward in this round
-            # goat_reward = 0
-            # for exp in goat_.data:
-            #     goat_reward += exp[-1]
 
-            tiger_reward = 0
-            for exp in tiger_.data:
-                tiger_reward += exp[-1]
 
             # avg_rewards_goat.append(goat_reward/len(goat_.data))
 
@@ -108,14 +98,26 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
                 iters.append(i)
 
             if Goat in learn:
+                goat_.prepare_data()
                 goat_.learn()
+
+                goat_reward = 0
+                for exp in goat_.data:
+                    goat_reward += exp[-1]
+                
                 if plot and i % n == 0:
                     loss_goat = goat_.test('experience-goat-dqn-test.txt')
                     avg_loss_goat.append(loss_goat)
                     goat_plot.plot(iters, avg_loss_goat)
 
             if Tiger in learn:
+                tiger_.prepare_data()
                 tiger_.learn()
+                
+                tiger_reward = 0
+                for exp in tiger_.data:
+                    tiger_reward += exp[-1]
+
                 if plot and i % n == 0:
                     loss_tiger = tiger_.test('experience-tiger-test.txt')
                     avg_rewards_tiger.append(tiger_reward/len(tiger_.data))
@@ -139,6 +141,4 @@ def run_simulation(verbose=False, LRs=[0.025], save_model=[], learn=[], plot=Tru
     
 
 if __name__ == '__main__':
-    # LRs = [0.000000001, 0.000001, 0.0001, 0.001, 0.01, 0.1]
-    run_simulation(verbose=False, LRs=[0.0025], save_model=[], learn=[Goat, Tiger], plot=True, save_experience=[])
-    # run_simulation(verbose=False, LRs=[0.005], save_model=[], learn=[Tiger, Goat], plot=True, save_experience=[Tiger, Goat])
+    run_simulation(verbose=False, LRs=[0.0025], save_model=[], learn=[Tiger], plot=True, save_experience=[])
