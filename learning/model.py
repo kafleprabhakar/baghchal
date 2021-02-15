@@ -30,14 +30,12 @@ class NeuralNet(th.nn.Module):
         self.to(self.device)
 
     def forward(self, data):
+        data = data.to(self.device)
         if len(data.shape) == 1:
             data = data.reshape(1, -1)
 
         brd, move = th.split(data, [75, 9], dim=1)
         brd = brd.reshape(-1, 3, 5, 5)
-
-        brd.to(self.device)
-        move.to(self.device)
 
         x_brd = self.boardNet(brd)
         x_act = self.actionNet(move)
