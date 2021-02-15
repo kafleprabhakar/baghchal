@@ -137,9 +137,9 @@ class DQNAgent(BaseAgent):
         features, target = th.split(data, [n_features, 1], dim=1)
 
         pred = self.model(features)
-        target = target.reshape(-1, 1)
+        target = target.reshape(-1, 1).to(self.model.device)
 
-        loss = self.loss_func(pred, target).to(self.model.device)
+        loss = self.loss_func(pred, target)
         loss.backward()
 
         total_loss = loss.item()
@@ -163,7 +163,7 @@ class DQNAgent(BaseAgent):
             data = data.float()
             pred = self.model(data)
 
-            target = target.float().reshape(-1, 1)
+            target = target.float().reshape(-1, 1).to(self.model.device)
             loss = self.loss_func(pred, target)
 
             total_loss += loss.item()
